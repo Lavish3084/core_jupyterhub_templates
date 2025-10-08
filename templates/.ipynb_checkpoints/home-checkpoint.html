@@ -1,0 +1,150 @@
+{% extends "page.html" %}
+
+{% block style %}
+<style>
+.gpu-card {
+    background: linear-gradient(145deg, #1f2630, #101820);
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.gpu-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+}
+
+.progress {
+    height: 12px;
+    border-radius: 6px;
+    background-color: #2c2f3a;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.5s ease;
+}
+
+.gpu-header {
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.gpu-info p {
+    margin: 0.2rem 0;
+}
+
+.gpu-utilization, .gpu-memory {
+    margin-top: 0.8rem;
+}
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <div class="card home-panel mt-4">
+        <div class="card-header">GPU Status</div>
+        <div class="card-body">
+          <p>Current status of the server's GPUs.</p>
+          <div class="d-flex gap-2 mb-3">
+            <button id="nvidia-smi-btn" class="btn btn-jupyter">Refresh GPU Details</button>
+            <button id="stop-gpu-refresh" class="btn btn-danger">Stop Auto Refresh</button>
+          </div>
+
+          <!-- GPU Output -->
+          <div id="gpu-cards" class="row mt-3"></div>
+
+          <!-- Raw output (optional) -->
+          <pre id="nvidia-smi-output"
+               style="display:none; background-color:#1e1e1e; color:#00ff99; padding:1rem; border-radius:8px; max-height:400px; overflow-y:auto; font-family: 'Courier New', monospace;">
+          </pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+{{ super() }}
+<script type="text/javascript">
+$(function () {
+  var btn = $('#nvidia-smi-btn');
+  var output_area = $('#nvidia-smi-output');
+  var gpu_cards = $('#gpu-cards');
+
+  function loadGPUStatus() {
+    // btn.attr('disabled', true).text('Loading...');
+    $.ajax({
+      url: "/services/nvidia-smi/",
+      method: "GET",
+      success: function(data) {
+        btn.attr('disabled', false).text('Refresh GPU Details');
+        gpu_cards.empty();
+        output_area.hide().text('');
+
+        if (data.gpus && data.gpus.length > 0) {
+          data.gpus.forEach(gpu => {
+            let memPercent = gpu.memory_total ? Math.round((gpu.memory_used / gpu.memory_total) * 100) : 0;
+            let utilPercent = gpu.utilization;
+
+            let memBarClass = memPercent < 50 ? 'bg-success' :
+                              memPercent < 80 ? 'bg-warning' : 'bg-danger';
+            let utilBarClass = utilPercent < 50 ? 'bg-success' :
+                               utilPercent < 80 ? 'bg-warning' : 'bg-danger';
+
+            gpu_cards.append(`
+              <div class="col-md-6">
+                <div class="gpu-card">
+                  <div class="gpu-header">${gpu.name}</div>
+                  <div class="gpu-info">
+                    <p><strong>Temperature:</strong> ${gpu.temperature}°C</p>
+                    <p><strong>Power:</strong> ${gpu.power}</p>
+                    <p><strong>Memory:</strong> ${gpu.memory_used} / ${gpu.memory_total} MiB</p>
+                    <p><strong>Utilization:</strong> ${gpu.utilization}%</p>
+                  </div>
+                  <div class="gpu-memory">
+                    <p>Memory Usage</p>
+                    <div class="progress">
+                      <div class="progress-bar ${memBarClass}" role="progressbar" style="width:${memPercent}%" aria-valuenow="${memPercent}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                  </div>
+                  <div class="gpu-utilization">
+                    <p>GPU Utilization</p>
+                    <div class="progress">
+                      <div class="progress-bar ${utilBarClass}" role="progressbar" style="width:${utilPercent}%" aria-valuenow="${utilPercent}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `);
+          });
+        } else {
+          gpu_cards.append('<p style="color:red;">No GPUs detected.</p>');
+        }
+      },
+      error: function(err) {
+        btn.attr('disabled', false).text('Refresh GPU Details');
+        output_area.show().text('Error fetching GPU status.');
+      }
+    });
+  }
+
+  loadGPUStatus();
+  let intervalId = setInterval(loadGPUStatus, 5000);
+
+  $('#stop-gpu-refresh').on('click', function () {
+    clearInterval(intervalId);
+    btn.text('Refresh GPU Details (Stopped)');
+  });
+
+  btn.on('click', loadGPUStatus);
+});
+</script>
+{% endblock %}

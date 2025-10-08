@@ -1,0 +1,32 @@
+{# /etc/jupyterhub/templates/admin.html #}
+
+{% extends "page.html" %}
+
+{% block styles %}
+  {{ super() }} {# This keeps the original styles #}
+  
+  <style>
+
+{% endblock %}
+
+{% block main %}
+  <div id="react-admin-hook">
+    
+    <div class="admin-loader-container">
+      <div class="admin-loader"></div>
+      <p style="margin-top: 1rem;">Loading Admin Panel...</p>
+    </div>
+    
+    <script id="jupyterhub-admin-config">
+      window.api_page_limit = parseInt("{{ api_page_limit|safe }}")
+      window.base_url = "{{ base_url|safe }}"
+    </script>
+    <script src={{ static_url("js/admin-react.js") }}></script>
+  </div>
+{% endblock main %}
+
+{% block footer %}
+  <div class="py-2 px-4 bg-body-tertiary small version_footer">
+    Company Admin Panel | JupyterHub {{ server_version }}
+  </div>
+{% endblock footer %}
