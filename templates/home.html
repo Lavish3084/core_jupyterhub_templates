@@ -1,76 +1,310 @@
 {% extends "page.html" %}
 
-{% block style %}
-<style>
-.gpu-card {
-    background: linear-gradient(145deg, #1f2630, #101820);
-    color: #ffffff;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.gpu-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.7);
-}
-
-.progress {
-    height: 12px;
-    border-radius: 6px;
-    background-color: #2c2f3a;
-    overflow: hidden;
-}
-
-.progress-bar {
-    transition: width 0.5s ease;
-}
-
-.gpu-header {
-    font-weight: bold;
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-}
-
-.gpu-info p {
-    margin: 0.2rem 0;
-}
-
-.gpu-utilization, .gpu-memory {
-    margin-top: 0.8rem;
-}
-</style>
-{% endblock %}
-
 {% block main %}
-<div class="container">
-  <div class="row">
-    <div class="col-12">
-      <div class="card home-panel mt-4">
-        <div class="card-header">GPU Status</div>
-        <div class="card-body">
-          <p>Current status of the server's GPUs.</p>
-          <div class="d-flex gap-2 mb-3">
-            <button id="nvidia-smi-btn" class="btn btn-jupyter">Refresh GPU Details</button>
-            <button id="stop-gpu-refresh" class="btn btn-danger">Stop Auto Refresh</button>
-          </div>
-
-          <!-- GPU Output -->
-          <div id="gpu-cards" class="row mt-3"></div>
-
-          <!-- Raw output (optional) -->
-          <pre id="nvidia-smi-output"
-               style="display:none; background-color:#1e1e1e; color:#00ff99; padding:1rem; border-radius:8px; max-height:400px; overflow-y:auto; font-family: 'Courier New', monospace;">
-          </pre>
-        </div>
-      </div>
+{# --- START: Custom Dotted Halftone Background --- #}
+<div>
+    <div class="video-container">
+        <video id="video-source-halftone" loop muted autoplay playsinline>
+            <source src="/hub/static/worldmap.mp4" type="video/mp4">
+        </video>
+        <canvas id="dot-canvas-halftone"></canvas>
     </div>
-  </div>
-</div>
-{% endblock %}
+    <style>
+        /* Styles for the halftone effect elements */
+        .video-container {
+            position: absolute; /* Use fixed to ensure it stays in the background */
+            top: 0;
+            left: 0;
+            width: 100vw; 
+            height: 100vh;
+            background-color: black; 
+            z-index: -5; /* Ensure it is behind all page content */
+        }
 
+        #video-source-halftone, #dot-canvas-halftone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #video-source-halftone {
+            visibility: hidden; /* Hide the video visually */
+        }
+
+        #dot-canvas-halftone {
+            background: transparent;
+        }
+    </style>
+    {# --- END: Custom Dotted Halftone Background --- #}
+<!-- <div style="
+  width: 100%;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+">
+  <h2 style="
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid black;
+    padding-bottom: 0.5rem;
+  ">
+    GPU Status
+  </h2>
+
+  <p style="margin-bottom: 2rem;">Current status of the server's GPUs.</p>
+
+  <div id="gpu-cards" style="
+    display: flex;
+    gap: 2rem;
+    width: 80%;
+    justify-content: space-evenly;
+    flex-wrap: wrap;
+      color:white;
+  "></div>
+
+  <pre id="nvidia-smi-output"
+       style="display:none; background-color:#f5f5f5; color:black; padding:1rem; border-radius:8px; max-height:400px; overflow-y:auto; font-family: 'Courier New', monospace; border: 1px solid black;">
+  </pre>
+</div> -->
+<div style="
+    height: calc(100vh - 300px);
+    display: flex; /* Enable Flexbox */
+    align-items: center; /* Center items vertically */
+    justify-content: center; /* Center items horizontally (optional, but good practice) */
+    padding: 0 5%; /* Add horizontal padding to prevent text touching screen edges */
+">
+    <h1 style="
+        font-size: clamp(2.5rem, 6vw, 5.5rem);
+      font-weight: 700;
+      color: #e6e6e6;
+      line-height: 1.05;
+      margin: 0;
+      letter-spacing: -0.03em;
+      background: linear-gradient(180deg, #e9e9e9 0%, #bcbcbc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.05));
+              font-family: "Inter", sans-serif;
+    ">
+        Opening Spaces to Compute, Merge & Collaborate <br>
+Welcome to CUAI.Space
+    </h1>
+</div>
+<div style="
+    background-color: black; 
+    color: white; 
+    padding: 30px; 
+    font-family: sans-serif; 
+    line-height: 1.5;
+    width: 100%;
+    margin-top:10rem;
+">
+    <p style="
+        font-size: 2.3rem; 
+        margin: 0;
+        font-weight: semibold;
+        padding-left:1.6rem;
+        padding-bottom: 8rem;
+    ">
+        At CUAI.Space, these core values drive our commitment to empower your AI/ML journey through dedicated support across Startup.Space, Research.Space, and Lab.Space.
+        <a href="#" style="
+            color: #ccc; /* Light gray for link text */
+            text-decoration: none; 
+            border-bottom: 1px solid #ccc; /* Optional: subtle underline effect */
+            display: inline-block; /* Allows vertical alignment */
+        ">
+            Learn More 
+            <span style="
+                font-size: 1.2rem;
+                vertical-align: middle;
+                margin-left: 5px;
+            ">&rarr;</span>
+        </a>
+    </p>
+</div>
+    <div style="height: 580px;">
+    </div>
+<div style="
+    background-color: #1e1e1e; /* Very dark gray/near black background */
+    color: white; 
+    font-family: Arial, sans-serif;
+    padding: 10vh 5vw 5vh 5vw; /* Responsive padding (top/side/bottom) */
+    display: flex; 
+    flex-wrap: wrap; /* Allows wrapping on small screens */
+    justify-content: space-between;
+    min-height: 400px; /* Ensure sufficient height */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: -10;
+">
+    <!-- COLUMN 1: Large Bold Text (Left Side, takes 50% width on desktop) -->
+    <div style="
+        width: 45%; 
+        min-width: 300px; /* Ensures text doesn't collapse too much */
+        margin-bottom: 50px;
+        align-self: flex-start;
+    ">
+        <h1 style="
+            font-size: 4rem; 
+            font-weight: 700; /* Bold */
+            line-height: 1.1; 
+            margin: 0;
+            padding: 0;
+        ">
+            Connect.<br>Compute.<br>Collaborate.
+        </h1>
+    </div>
+
+    <!-- COLUMN 2: Top Right Content & Grid (Right Side, takes 50% width on desktop) -->
+    <div style="
+        width: 45%; 
+        min-width: 350px; /* Ensures the addresses don't wrap oddly */
+        margin-bottom: 50px;
+    ">
+        <!-- Top Right Paragraph with Link -->
+        <p style="
+            font-size: 1.3rem;
+            font-weight: 700;
+            ">
+            Startup.Space
+        </p>
+        <p style="
+            font-size: 1.1rem; 
+            font-weight: 500;
+            line-height: 1.4; 
+            margin-top: 0;
+        ">
+            Fostering innovation and growth for registered startups within and outside Chandigarh University.
+            <!-- <a href="#" style="
+                color: white; 
+                text-decoration: none; 
+                border-bottom: 1px solid white;
+                display: inline-block;
+            ">
+                Get in touch 
+                <span style="font-size: 1.2rem; vertical-align: middle; margin-left: 5px;">&rarr;</span>
+            </a> -->
+        </p>
+
+        <!-- Address/Info Grid (3 Columns) -->
+        <div style="
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Two columns for information */
+            gap: 20px;
+            margin-top: 50px;
+            font-size: 0.85rem;
+            line-height: 1.3;
+        ">
+            <!-- Col A: Cregg Paris Info -->
+            <div>
+                <strong style="display: block; margin-bottom: 5px; font-weight: 700;">Our local presence is rooted at:</strong>
+                <p style="margin: 0;">Chandigarh University<br>2nd Mile Stone, Chandigarh-Patiala National Highway,<br>Gharuan, Mohali, Punjab - 140413, India</p>
+                <div style="height: 20px;"></div>
+                <strong style="display: block; margin-bottom: 5px; font-weight: 700;">Connect with CUAI.Space</strong>
+                <p>for tailored AI infrastructure, seamless onboarding, and sustained project success.</p>
+                <p style="margin: 0; "><a href="" style="color:white;">hello@cuai.space</a><br><a href="" style="color:white;">tech.tbi@cumail.in</a></p>
+            </div>
+
+            <!-- Col B: Links and Copyright -->
+            <div>
+                <a href="#" style="color: white; text-decoration: none; display: block; margin-bottom: 5px;">Privacy policy</a>
+                <a href="#" style="color: white; text-decoration: none; display: block; margin-bottom: 20px;">Linkedln</a>
+                <p style="margin: 0; opacity: 0.7;">&copy;2025 Chandigarh University. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- BOTTOM LEFT: Logo/Branding Element -->
+    <div style="
+        width: 100%; /* Spans full width */
+        margin-top: 50px; 
+        font-size: 1.5rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        border-top: 1px solid #444; /* Subtle divider line */
+        padding-top: 20px;
+    ">
+        <!-- <span style="font-size: 1.8rem; margin-right: 15px; letter-spacing: 0.2rem;">&#x25c8;&#x25c8;&#x25c8;</span> -->
+        <img src="static/whitelogo.png" style="height: 50px;"/>
+    </div>
+</div>
+{# --- START: Custom Dotted Halftone Script --- #}
+    <script type="text/javascript">
+        const video = document.getElementById('video-source-halftone');
+        const canvas = document.getElementById('dot-canvas-halftone');
+        const ctx = canvas.getContext('2d');
+
+        // --- Configuration (AS REQUESTED) ---
+        const DOT_SIZE_MIN = 0.5; // The smallest radius for the blackest areas
+        const DOT_SIZE_MAX = 7;   // Max radius of the dot in pixels
+        const GRID_SPACING = 11;  // Distance between dot centers (grid spacing)
+        // ------------------------------------
+
+        let canvasWidth, canvasHeight;
+
+        function setCanvasDimensions() {
+            canvasWidth = canvas.width = video.clientWidth;
+            canvasHeight = canvas.height = video.clientHeight;
+        }
+
+        function drawHalftone() {
+            
+            // Draw the current video frame onto the canvas to sample pixel data.
+            ctx.drawImage(video, 0, 0, canvasWidth, canvasHeight);
+            
+            const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight).data;
+
+            // Clear the canvas *after* reading pixels, so we only draw the dots
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            for (let y = 0; y < canvasHeight; y += GRID_SPACING) {
+                for (let x = 0; x < canvasWidth; x += GRID_SPACING) {
+                    
+                    const index = (y * canvasWidth + x) * 4;
+                    const r = imageData[index];
+                    const g = imageData[index + 1];
+                    const b = imageData[index + 2];
+                    
+                    const luminosity = (r + g + b) / 3;
+                    const scale = luminosity / 255;
+                    
+                    // --- DOT SIZE CALCULATION ---
+                    const sizeRange = DOT_SIZE_MAX - DOT_SIZE_MIN; 
+                    const radius = DOT_SIZE_MIN + (sizeRange * scale); 
+                    // ----------------------------
+
+                    // Dot color is always white and fully opaque (alpha = 1.0)
+                    const fixedAlpha = 1.0; 
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius, 0, Math.PI * 2, false);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${fixedAlpha})`;
+                    ctx.fill();
+                }
+            }
+
+            requestAnimationFrame(drawHalftone);
+        }
+
+        // --- Initialization ---
+        video.addEventListener('loadedmetadata', setCanvasDimensions);
+        video.addEventListener('play', () => {
+            setCanvasDimensions(); 
+            drawHalftone();
+        });
+        window.addEventListener('resize', setCanvasDimensions);
+        video.play().catch(e => console.log("Video autoplay failed, user interaction may be required."));
+
+    </script>
+{% endblock %}
 {% block script %}
 {{ super() }}
 <script type="text/javascript">
@@ -78,9 +312,7 @@ $(function () {
   var btn = $('#nvidia-smi-btn');
   var output_area = $('#nvidia-smi-output');
   var gpu_cards = $('#gpu-cards');
-
   function loadGPUStatus() {
-    // btn.attr('disabled', true).text('Loading...');
     $.ajax({
       url: "/services/nvidia-smi/",
       method: "GET",
@@ -94,32 +326,59 @@ $(function () {
             let memPercent = gpu.memory_total ? Math.round((gpu.memory_used / gpu.memory_total) * 100) : 0;
             let utilPercent = gpu.utilization;
 
-            let memBarClass = memPercent < 50 ? 'bg-success' :
-                              memPercent < 80 ? 'bg-warning' : 'bg-danger';
-            let utilBarClass = utilPercent < 50 ? 'bg-success' :
-                               utilPercent < 80 ? 'bg-warning' : 'bg-danger';
-
             gpu_cards.append(`
-              <div class="col-md-6">
-                <div class="gpu-card">
-                  <div class="gpu-header">${gpu.name}</div>
-                  <div class="gpu-info">
-                    <p><strong>Temperature:</strong> ${gpu.temperature}°C</p>
-                    <p><strong>Power:</strong> ${gpu.power}</p>
-                    <p><strong>Memory:</strong> ${gpu.memory_used} / ${gpu.memory_total} MiB</p>
-                    <p><strong>Utilization:</strong> ${gpu.utilization}%</p>
+              <div style="
+                flex: 1 1 40%;
+                min-width: 350px;
+                border: 1px solid black;
+                border-radius: 10px;
+                padding: 1.5rem;
+                background: rgba(255, 255, 255, 0.15);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                box-shadow: 3px 3px 0 black;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+              ">
+                <h3 style="margin-bottom: 0.75rem; font-weight: 600;">${gpu.name}</h3>
+
+                <div style="margin-bottom: 0.5rem;">Temperature: <b>${gpu.temperature}°C</b></div>
+                <div style="margin-bottom: 0.5rem;">Power: <b>${gpu.power}</b></div>
+                <div style="margin-bottom: 0.5rem;">Memory: <b>${gpu.memory_used} / ${gpu.memory_total} MiB</b></div>
+                <div style="margin-bottom: 0.5rem;">Utilization: <b>${gpu.utilization}%</b></div>
+
+                <div style="margin-top: 1rem;">
+                  <div style="font-weight: 500; margin-bottom: 0.25rem;">Memory Usage</div>
+                  <div style="
+                    width: 100%;
+                    height: 12px;
+                    border: 1px solid black;
+                    background-color: white;
+                    position: relative;
+                  ">
+                    <div style="
+                      width: ${memPercent}%;
+                      height: 100%;
+                      background-color: black;
+                      transition: width 0.5s ease;
+                    "></div>
                   </div>
-                  <div class="gpu-memory">
-                    <p>Memory Usage</p>
-                    <div class="progress">
-                      <div class="progress-bar ${memBarClass}" role="progressbar" style="width:${memPercent}%" aria-valuenow="${memPercent}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-                  </div>
-                  <div class="gpu-utilization">
-                    <p>GPU Utilization</p>
-                    <div class="progress">
-                      <div class="progress-bar ${utilBarClass}" role="progressbar" style="width:${utilPercent}%" aria-valuenow="${utilPercent}" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                  <div style="font-weight: 500; margin-bottom: 0.25rem;">GPU Utilization</div>
+                  <div style="
+                    width: 100%;
+                    height: 12px;
+                    border: 1px solid black;
+                    background-color: white;
+                    position: relative;
+                  ">
+                    <div style="
+                      width: ${utilPercent}%;
+                      height: 100%;
+                      background-color: black;
+                      transition: width 0.5s ease;
+                    "></div>
                   </div>
                 </div>
               </div>
@@ -135,7 +394,6 @@ $(function () {
       }
     });
   }
-
   loadGPUStatus();
   let intervalId = setInterval(loadGPUStatus, 5000);
 
